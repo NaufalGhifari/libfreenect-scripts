@@ -59,7 +59,7 @@ for i in range(1, len(assoc)):
         print(f"{i}/{len(assoc)}")
 
 with open(f"{root}/groundtruth.txt", "w") as f:
-    f.write("# timestamp tx ty tz qx qy qz qw\n")
+    f.write("# GT generated using Open3D\n# timestamp tx ty tz qx qy qz qw\n")
     for ts, P in poses:
         qx, qy, qz, qw = R.from_matrix(P[:3, :3]).as_quat()   # scipy order is x,y,z,w
         tx, ty, tz = P[:3, 3]
