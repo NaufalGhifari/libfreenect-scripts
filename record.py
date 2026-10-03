@@ -35,23 +35,40 @@ workers = [threading.Thread(target=worker) for _ in range(3)]
 for w in workers:
     w.start()
 
+# def enqueue(kind, data):
+#     ts = f"{time.time():.6f}"
+#     try:
+#         q.put_nowait((kind, ts, data.copy()))
+#         counts[kind] += 1
+#         return True
+#     except queue.Full:
+#         dropped[kind] += 1
+#         return False
+
 def enqueue(kind, data):
     ts = f"{time.time():.6f}"
+    frame = data.copy()
     try:
-        q.put_nowait((kind, ts, data.copy()))
+        q.put_nowait((kind, ts, frame))
         counts[kind] += 1
-        return True
+        return frame
     except queue.Full:
         dropped[kind] += 1
-        return False
+        return None
 
 def depth_cb(dev, data, _):
     enqueue("depth", data)
 
+# def rgb_cb(dev, data, _):
+#     global latest_rgb
+#     if enqueue("rgb", data):
+#         latest_rgb = data            # enqueue already copied; this is only read by body()
+
 def rgb_cb(dev, data, _):
     global latest_rgb
-    if enqueue("rgb", data):
-        latest_rgb = data            # enqueue already copied; this is only read by body()
+    frame = enqueue("rgb", data)
+    if frame is not None:
+        latest_rgb = frame
 
 def body(*args):
     """Runs in the main loop: safe place to show the preview and stop."""
@@ -83,6 +100,10 @@ finally:
         q.put(None)
     for w in workers:
         w.join()
+
+    freenect.close_device(dev)
+    freenect.shutdown(ctx)
+    
     print(f"[DONE] {dur:.1f}s | rgb {counts['rgb']/dur:.1f} fps | "
           f"depth {counts['depth']/dur:.1f} fps | dropped {dropped}")
     print(f"Next: python associate.py {RUN_DIR}")
